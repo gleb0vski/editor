@@ -161,7 +161,7 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// ВСТАВКА КОМПОНЕНТОВ В ZEDITOR (ИСПРАВЛЕННАЯ)
+// ВСТАВКА КОМПОНЕНТОВ В ZEDITOR (БЕЗ ТЕКСТОВЫХ МЕТОК)
 // ============================================================
 function insertComponent(name) {
     const editor = window.zeditorInstance;
@@ -171,26 +171,37 @@ function insertComponent(name) {
     }
 
     let content = '';
-    let label = '';
+    let borderColor = '#216cff';
+    let bgColor = '#f0f4ff';
+    let textColor = '#216cff';
     
     if (name === 'calculator') { 
         content = '<div id="calculator"></div>'; 
-        label = 'калькулятор';
+        borderColor = '#f59e0b';
+        bgColor = '#fffbeb';
+        textColor = '#b45309';
     } else if (name === 'modal_btn') { 
         content = '<button class="customButton customButton_main" data-modal-open>Оставить заявку</button>'; 
-        label = 'кнопка модалки';
+        borderColor = '#8b5cf6';
+        bgColor = '#f5f3ff';
+        textColor = '#6d28d9';
     } else if (name === 'modal_btn_calc') { 
         content = '<button class="customButton customButton_main" id="calcOrderBtn">Оформить заказ</button>'; 
-        label = 'кнопка модалки (калькулятор)';
+        borderColor = '#8b5cf6';
+        bgColor = '#f5f3ff';
+        textColor = '#6d28d9';
     } else if (name === 'cta') { 
         content = '<div id="cta"></div>'; 
-        label = 'CTA блок';
+        borderColor = '#ef4444';
+        bgColor = '#fef2f2';
+        textColor = '#b91c1c';
     } else { 
         alert('❌ Компонент не найден: ' + name); 
         return; 
     }
     
-    const html = `<div class="component-placeholder" style="display:block;padding:16px 20px;margin:12px 0;border:2px dashed #216cff;border-radius:12px;background:#f0f4ff;color:#216cff;font-weight:500;font-size:14px;text-align:center;position:relative;">🧩 ${content} [${label}]</div>`;
+    // Создаем плейсхолдер без текстовых меток
+    const html = `<div class="component-placeholder" style="display:block;padding:16px 20px;margin:12px 0;border:2px dashed ${borderColor};border-radius:12px;background:${bgColor};color:${textColor};font-weight:500;font-size:14px;text-align:center;position:relative;">🧩 ${content}</div>`;
     
     // Используем API Zeditor для вставки
     editor.insertHTML(html);
