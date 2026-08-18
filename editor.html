@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор статей с Zeditor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f4f5f7; padding: 40px; }
+        .editor-container { max-width: 1000px; margin: 0 auto; background: #fff; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .editor-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #1e293b; }
+        .field-group { margin-bottom: 20px; }
+        .field-group label { display: block; font-weight: 600; font-size: 13px; color: #1e293b; margin-bottom: 4px; }
+        .field-group input, .field-group textarea, .field-group select { width: 100%; padding: 10px 14px; border: 1px solid #e4e4e4; border-radius: 10px; font-size: 14px; font-family: 'Inter', sans-serif; }
+        .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color: #216cff; outline: none; }
+        .field-group textarea { min-height: 60px; resize: vertical; }
+        .field-group .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+        
+        .image-preview { max-width: 200px; margin-top: 8px; border-radius: 8px; border: 1px solid #e4e4e4; padding: 4px; display: none; }
+        .image-preview.show { display: block; }
+        .image-preview img { max-width: 100%; border-radius: 4px; }
+        
+        .insert-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+        .insert-buttons button { padding: 8px 18px; border: 1px solid #e4e4e4; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .insert-buttons button:hover { background: #f0f4ff; border-color: #216cff; }
+        
+        .export-btn { padding: 12px 28px; background: #00a632; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 12px; }
+        .export-btn:hover { background: #018b2a; }
+        
+        .status { margin-top: 10px; padding: 10px 16px; border-radius: 8px; font-size: 14px; display: none; }
+        .status.success { display: block; background: #e6f7e6; color: #00a632; }
+        .status.error { display: block; background: #fde8e8; color: #ec0000; }
+        
+        /* Стили для Zeditor */
+        .zeditor { border-radius: 12px !important; border: 2px solid #e4e4e4 !important; }
+        .zeditor:focus-within { border-color: #216cff !important; }
+        .zeditor-toolbar { background: #f8f9fa !important; border-bottom: 1px solid #e4e4e4 !important; border-radius: 12px 12px 0 0 !important; }
+        .zeditor-content { min-height: 350px !important; padding: 16px !important; font-family: 'Inter', sans-serif !important; font-size: 15px !important; line-height: 1.7 !important; color: #1e293b !important; }
+        .zeditor-content h2 { font-size: 22px; margin: 10px 0; }
+        .zeditor-content h3 { font-size: 18px; margin: 8px 0; }
+        .zeditor-content h4 { font-size: 16px; margin: 6px 0; }
+        .zeditor-content p { margin: 8px 0; }
+        .zeditor-content ul, .zeditor-content ol { margin: 8px 0 8px 20px; }
+        .zeditor-content img { max-width: 100%; max-height: 300px; border-radius: 8px; margin: 8px 0; border: 1px solid #e4e4e4; display: block; }
+        .zeditor-content blockquote { border-left: 4px solid #216cff; padding: 8px 16px; background: #f8f9fa; border-radius: 6px; margin: 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="editor-container">
+    <h1 class="editor-title">📝 Редактор статей с Zeditor</h1>
+
+    <div class="row">
+        <div class="field-group">
+            <label>Заголовок статьи (H1)</label>
+            <input type="text" id="articleTitle" placeholder="Введите заголовок" oninput="generateSlug()">
+        </div>
+        <div class="field-group">
+            <label>Meta Title</label>
+            <input type="text" id="metaTitle" placeholder="SEO-тайтл">
+        </div>
+    </div>
+
+    <div class="field-group">
+        <label>URL (ЧПУ)</label>
+        <input type="text" id="articleSlug" placeholder="avtomaticheskij-translit">
+        <div class="hint">Автоматически генерируется из заголовка. Можно редактировать вручную.</div>
+    </div>
+
+    <div class="field-group">
+        <label>Главная картинка (имя файла из папки blog/img)</label>
+        <div class="row" style="gap: 12px;">
+            <input type="text" id="mainImage" placeholder="photo.jpg" style="flex: 3;" oninput="previewImage()">
+            <button onclick="document.getElementById('mainImage').value = ''; previewImage();" style="flex: 0; padding: 10px 16px; border: 1px solid #e4e4e4; border-radius: 10px; background: #fff; cursor: pointer;">✕</button>
+        </div>
+        <div class="hint">Будет вставлена как <code>&lt;img src="blog/img/название.jpg"&gt;</code></div>
+        <div id="imagePreview" class="image-preview"><img id="previewImg" src="" alt="Превью"></div>
+    </div>
+
+    <div class="field-group">
+        <label>Meta Description</label>
+        <textarea id="metaDescription" placeholder="SEO-описание"></textarea>
+    </div>
+
+    <div class="insert-buttons">
+        <button onclick="insertComponent('calculator')">📊 Калькулятор</button>
+        <button onclick="insertComponent('modal_btn')">🪟 Кнопка модалки</button>
+        <button onclick="insertComponent('modal_btn_calc')">🪟 Кнопка модалки (калькулятор)</button>
+        <button onclick="insertComponent('cta')">🎯 CTA блок</button>
+    </div>
+
+    <div class="field-group">
+        <label>Текст статьи</label>
+        <div id="editor"></div>
+    </div>
+
+    <button class="export-btn" onclick="exportHTML()">⬇ Скачать HTML-страницу</button>
+    <div id="status" class="status"></div>
+</div>
+
+<!-- Подключение Zeditor -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zesyn/zeditor/dist/zeditor.css">
+<script src="https://cdn.jsdelivr.net/npm/@zesyn/zeditor/dist/zeditor.iife.js"></script>
+
+<script>
+// ============================================================
+// ТРАНСЛИТЕРАЦИЯ
+// ============================================================
+function translit(text) {
+    const map = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'E',
+        'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+        'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+        'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+        'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+    };
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (map[ch]) result += map[ch];
+        else if (/[a-zA-Z0-9]/.test(ch)) result += ch;
+        else if (ch === ' ') result += '-';
+    }
+    return result.toLowerCase().replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function generateSlug() {
+    document.getElementById('articleSlug').value = translit(document.getElementById('articleTitle').value);
+}
+
+function previewImage() {
+    const name = document.getElementById('mainImage').value.trim();
+    const preview = document.getElementById('imagePreview');
+    const img = document.getElementById('previewImg');
+    if (name) { 
+        img.src = 'blog/img/' + name; 
+        preview.classList.add('show'); 
+    } else { 
+        preview.classList.remove('show'); 
+        img.src = ''; 
+    }
+}
+
+function showStatus(type, msg) {
+    const el = document.getElementById('status');
+    el.className = 'status ' + type;
+    el.textContent = msg;
+    setTimeout(() => { el.className = 'status'; }, 3000);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// ВСТАВКА КОМПОНЕНТОВ В ZEDITOR
+// ============================================================
+function insertComponent(name) {
+    const editor = window.zeditorInstance;
+    if (!editor) {
+        alert('❌ Редактор не инициализирован');
+        return;
+    }
+
+    let content = '';
+    let label = '';
+    
+    if (name === 'calculator') { 
+        content = '<div id="calculator"></div>'; 
+        label = 'калькулятор';
+    } else if (name === 'modal_btn') { 
+        content = '<button class="customButton customButton_main" data-modal-open>Оставить заявку</button>'; 
+        label = 'кнопка модалки';
+    } else if (name === 'modal_btn_calc') { 
+        content = '<button class="customButton customButton_main" id="calcOrderBtn">Оформить заказ</button>'; 
+        label = 'кнопка модалки (калькулятор)';
+    } else if (name === 'cta') { 
+        content = '<div id="cta"></div>'; 
+        label = 'CTA блок';
+    } else { 
+        alert('❌ Компонент не найден: ' + name); 
+        return; 
+    }
+    
+    const html = `<div class="component-placeholder" style="display:block;padding:16px 20px;margin:12px 0;border:2px dashed #216cff;border-radius:12px;background:#f0f4ff;color:#216cff;font-weight:500;font-size:14px;text-align:center;position:relative;">🧩 ${content} [${label}]</div>`;
+    
+    // Вставляем в редактор
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const frag = range.createContextualFragment(html);
+        range.insertNode(frag);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    } else {
+        // Если нет выделения, вставляем в конец
+        const editorEl = document.querySelector('.zeditor-content');
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        editorEl.appendChild(div.firstElementChild);
+    }
+    
+    // Триггерим событие изменения для Zeditor
+    editor.emit('update');
+    
+    alert('✅ Вставлено: ' + name);
+}
+
+// ============================================================
+// ЭКСПОРТ HTML (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+// ============================================================
+function exportHTML() {
+    const editor = window.zeditorInstance;
+    if (!editor) {
+        showStatus('error', '❌ Редактор не инициализирован');
+        return;
+    }
+
+    const title = document.getElementById('articleTitle').value || 'Статья';
+    const metaTitle = document.getElementById('metaTitle').value || title;
+    const metaDesc = document.getElementById('metaDescription').value || '';
+    const slug = document.getElementById('articleSlug').value || translit(title);
+    const mainImage = document.getElementById('mainImage').value.trim();
+    
+    // Получаем содержимое из Zeditor
+    let content = editor.getHTML();
+
+    if (!content.trim() || content === '<p><br></p>' || content === '<p></p>') {
+        showStatus('error', '❌ Текст статьи не может быть пустым!');
+        return;
+    }
+
+    // Добавляем CTA в конец, если его нет
+    if (!content.includes('id="cta"')) {
+        content += '<div id="cta"></div>';
+    }
+
+    // Очищаем плейсхолдеры компонентов (заменяем на реальный контент)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    tempDiv.querySelectorAll('.component-placeholder').forEach(el => {
+        el.outerHTML = el.innerHTML;
+    });
+    const cleanContent = tempDiv.innerHTML;
+
+    // ===== СОЗДАЁМ СТРАНИЦУ ПРАВИЛЬНО =====
+    // Собираем HTML вручную, чтобы контролировать структуру
+    
+    let htmlString = '<!DOCTYPE html>\n';
+    htmlString += '<html lang="ru">\n';
+    htmlString += '<head>\n';
+    
+    // Мета-теги
+    htmlString += '    <meta charset="UTF-8">\n';
+    htmlString += '    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">\n';
+    htmlString += '    <title>' + escapeHtml(metaTitle || title || 'Статья') + '</title>\n';
+    htmlString += '    <meta name="description" content="' + escapeHtml(metaDesc) + '">\n';
+    htmlString += '    <meta name="robots" content="index, follow">\n';
+    htmlString += '    <meta name="author" content="anti-domate.ru">\n';
+    
+    // Open Graph
+    htmlString += '    <meta property="og:title" content="' + escapeHtml(metaTitle || title || 'Статья') + '">\n';
+    htmlString += '    <meta property="og:description" content="' + escapeHtml(metaDesc) + '">\n';
+    htmlString += '    <meta property="og:type" content="article">\n';
+    htmlString += '    <meta property="og:url" content="' + window.location.href + '">\n';
+    if (mainImage) {
+        htmlString += '    <meta property="og:image" content="' + window.location.origin + '/blog/img/' + mainImage + '">\n';
+    }
+    
+    // Twitter Cards
+    htmlString += '    <meta name="twitter:card" content="summary_large_image">\n';
+    htmlString += '    <meta name="twitter:title" content="' + escapeHtml(metaTitle || title || 'Статья') + '">\n';
+    htmlString += '    <meta name="twitter:description" content="' + escapeHtml(metaDesc) + '">\n';
+    if (mainImage) {
+        htmlString += '    <meta name="twitter:image" content="' + window.location.origin + '/blog/img/' + mainImage + '">\n';
+    }
+    
+    // Canonical
+    htmlString += '    <link rel="canonical" href="' + window.location.href + '">\n';
+    
+    // Стили и иконки
+    htmlString += '    <link rel="icon" type="image/png" href="/logo.png">\n';
+    htmlString += '    <link rel="shortcut icon" href="/logo.png">\n';
+    htmlString += '    <link rel="preconnect" href="https://fonts.googleapis.com">\n';
+    htmlString += '    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n';
+    htmlString += '    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">\n';
+    htmlString += '    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">\n';
+    htmlString += '    <link rel="stylesheet" href="/style.css">\n';
+    
+    htmlString += '</head>\n';
+    htmlString += '<body>\n';
+    
+    // Header
+    htmlString += '    <div id="header"></div>\n';
+    
+    // Main
+    htmlString += '    <main>\n';
+    htmlString += '        <div class="page__container page__section">\n';
+    htmlString += '            <div class="article-content">\n';
+    
+    // Хлебные крошки
+    htmlString += '                <div class="breadcrumbs">\n';
+    htmlString += '                    <a href="/">Главная</a>\n';
+    htmlString += '                    <span class="sep">›</span>\n';
+    htmlString += '                    <a href="/blog.html">Блог</a>\n';
+    htmlString += '                    <span class="sep">›</span>\n';
+    htmlString += '                    <span>' + escapeHtml(title) + '</span>\n';
+    htmlString += '                    <button class="back-btn" onclick="history.back()">\n';
+    htmlString += '                        <i class="fas fa-arrow-left"></i> Назад\n';
+    htmlString += '                    </button>\n';
+    htmlString += '                </div>\n';
+    
+    // Заголовок H1
+    htmlString += '                <h1>' + escapeHtml(title) + '</h1>\n';
+    
+    // Картинка
+    if (mainImage) {
+        htmlString += '                <img src="/blog/img/' + mainImage + '" alt="' + escapeHtml(title) + '" class="main-image">\n';
+    }
+    
+    // Контент
+    htmlString += '                ' + cleanContent + '\n';
+    
+    // Кнопки шаринга
+    htmlString += '                <div class="share-buttons">\n';
+    htmlString += '                    <span class="share-label">Поделиться:</span>\n';
+    htmlString += '                    <a class="share-btn share-tg" href="#" onclick="shareTelegram(); return false;"><i class="fab fa-telegram"></i></a>\n';
+    htmlString += '                    <a class="share-btn share-vk" href="#" onclick="shareVK(); return false;"><i class="fab fa-vk"></i></a>\n';
+    htmlString += '                    <a class="share-btn share-wa" href="#" onclick="shareWhatsApp(); return false;"><i class="fab fa-whatsapp"></i></a>\n';
+    htmlString += '                    <a class="share-btn share-ok" href="#" onclick="shareOK(); return false;"><i class="fab fa-odnoklassniki"></i></a>\n';
+    htmlString += '                </div>\n';
+    
+    htmlString += '            </div>\n';
+    htmlString += '        </div>\n';
+    htmlString += '    </main>\n';
+    
+    // Footer
+    htmlString += '    <div id="footer"></div>\n';
+    
+    // Скрипты
+    htmlString += '    <script>\n';
+    htmlString += '        function shareTelegram() {\n';
+    htmlString += '            const url = encodeURIComponent(window.location.href);\n';
+    htmlString += '            const title = encodeURIComponent(document.querySelector("h1").textContent);\n';
+    htmlString += '            window.open("https://t.me/share/url?url="+url+"&text="+title, "_blank");\n';
+    htmlString += '        }\n';
+    htmlString += '        function shareVK() {\n';
+    htmlString += '            const url = encodeURIComponent(window.location.href);\n';
+    htmlString += '            const title = encodeURIComponent(document.querySelector("h1").textContent);\n';
+    htmlString += '            window.open("https://vk.com/share.php?url="+url+"&title="+title, "_blank");\n';
+    htmlString += '        }\n';
+    htmlString += '        function shareWhatsApp() {\n';
+    htmlString += '            const url = encodeURIComponent(window.location.href);\n';
+    htmlString += '            const title = encodeURIComponent(document.querySelector("h1").textContent);\n';
+    htmlString += '            window.open("https://api.whatsapp.com/send?text="+title+" "+url, "_blank");\n';
+    htmlString += '        }\n';
+    htmlString += '        function shareOK() {\n';
+    htmlString += '            const url = encodeURIComponent(window.location.href);\n';
+    htmlString += '            window.open("https://connect.ok.ru/dk?st.cmd=WidgetSharePreview&st.shareUrl="+url, "_blank");\n';
+    htmlString += '        }\n';
+    htmlString += '    <\/script>\n';
+    
+    htmlString += '    <script src="/load-components.js"><\/script>\n';
+    htmlString += '    <script src="/script.js"><\/script>\n';
+    
+    htmlString += '</body>\n';
+    htmlString += '</html>';
+
+    // Удаляем мусор от live-server
+    htmlString = htmlString.replace(/<!-- Code injected by live-server -->.*?<\/script>/gs, '');
+    htmlString = htmlString.replace(/<g-ext-in><\/g-ext-in>/, '');
+    htmlString = htmlString.replace(/<script id="[^"]*" src="https:\/\/[^"]*"><\/script>/g, '');
+
+    // Скачиваем
+    const blob = new Blob([htmlString], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = slug + '.html';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    showStatus('success', '✅ Файл скачан: ' + slug + '.html');
+}
+
+// ============================================================
+// ИНИЦИАЛИЗАЦИЯ ZEDITOR
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализируем Zeditor
+    const editor = new Zeditor.Zeditor('#editor', {
+        height: 500,
+        placeholder: 'Напишите текст статьи здесь...',
+        toolbar: [
+            'undo', 'redo', '|',
+            'heading', '|',
+            'bold', 'italic', 'underline', 'strikethrough', '|',
+            'align-left', 'align-center', 'align-right', 'align-justify', '|',
+            'bullet-list', 'ordered-list', '|',
+            'link', 'image', '|',
+            'code-block', 'blockquote', '|',
+            'clean'
+        ],
+        onChange: function() {
+            console.log('📝 Контент изменен');
+        }
+    });
+
+    // Сохраняем экземпляр редактора в глобальную переменную
+    window.zeditorInstance = editor;
+
+    // Добавляем кнопку вставки компонентов в тулбар
+    editor.on('init', function() {
+        console.log('🔥 Zeditor инициализирован');
+        // Устанавливаем начальное содержимое
+        editor.setHTML('<p>Напишите текст статьи здесь. Используйте кнопки для форматирования.</p>');
+    });
+
+    generateSlug();
+    console.log('🔥 Редактор загружен');
+});
+</script>
+
+</body>
+</html>
