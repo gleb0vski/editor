@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор статей</title>
+    <title>Редактор статей с Zeditor</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #f4f5f7; padding: 40px; }
@@ -50,7 +50,7 @@
 <body>
 
 <div class="editor-container">
-    <h1 class="editor-title">📝 Редактор статей</h1>
+    <h1 class="editor-title">📝 Редактор статей с Zeditor</h1>
 
     <div class="row">
         <div class="field-group">
@@ -85,10 +85,10 @@
     </div>
 
     <div class="insert-buttons">
-        <button onclick="insertComponent('calculator')">Калькулятор</button>
-        <button onclick="insertComponent('modal_btn')">Кнопка модалки</button>
-        <button onclick="insertComponent('modal_btn_calc')">Кнопка модалки (калькулятор)</button>
-        <button onclick="insertComponent('cta')">CTA блок</button>
+        <button onclick="insertComponent('calculator')">📊 Калькулятор</button>
+        <button onclick="insertComponent('modal_btn')">🪟 Кнопка модалки</button>
+        <button onclick="insertComponent('modal_btn_calc')">🪟 Кнопка модалки (калькулятор)</button>
+        <button onclick="insertComponent('cta')">🎯 CTA блок</button>
     </div>
 
     <div class="field-group">
@@ -161,7 +161,7 @@ function escapeHtml(str) {
 }
 
 // ============================================================
-// ВСТАВКА КОМПОНЕНТОВ В ZEDITOR (БЕЗ ТЕКСТОВЫХ МЕТОК)
+// ВСТАВКА КОМПОНЕНТОВ В ZEDITOR (ЧИСТЫЙ HTML)
 // ============================================================
 function insertComponent(name) {
     const editor = window.zeditorInstance;
@@ -171,40 +171,22 @@ function insertComponent(name) {
     }
 
     let content = '';
-    let borderColor = '#216cff';
-    let bgColor = '#f0f4ff';
-    let textColor = '#216cff';
     
     if (name === 'calculator') { 
         content = '<div id="calculator"></div>'; 
-        borderColor = '#f59e0b';
-        bgColor = '#fffbeb';
-        textColor = '#b45309';
     } else if (name === 'modal_btn') { 
         content = '<button class="customButton customButton_main" data-modal-open>Оставить заявку</button>'; 
-        borderColor = '#8b5cf6';
-        bgColor = '#f5f3ff';
-        textColor = '#6d28d9';
     } else if (name === 'modal_btn_calc') { 
         content = '<button class="customButton customButton_main" id="calcOrderBtn">Оформить заказ</button>'; 
-        borderColor = '#8b5cf6';
-        bgColor = '#f5f3ff';
-        textColor = '#6d28d9';
     } else if (name === 'cta') { 
         content = '<div id="cta"></div>'; 
-        borderColor = '#ef4444';
-        bgColor = '#fef2f2';
-        textColor = '#b91c1c';
     } else { 
         alert('❌ Компонент не найден: ' + name); 
         return; 
     }
     
-    // Создаем плейсхолдер без текстовых меток
-    const html = `<div class="component-placeholder" style="display:block;padding:16px 20px;margin:12px 0;border:2px dashed ${borderColor};border-radius:12px;background:${bgColor};color:${textColor};font-weight:500;font-size:14px;text-align:center;position:relative;">🧩 ${content}</div>`;
-    
-    // Используем API Zeditor для вставки
-    editor.insertHTML(html);
+    // Вставляем чистый HTML без плейсхолдера
+    editor.insertHTML(content);
     editor.focus();
     
     alert('✅ Вставлено: ' + name);
@@ -239,13 +221,9 @@ function exportHTML() {
         content += '<div id="cta"></div>';
     }
 
-    // Очищаем плейсхолдеры компонентов (заменяем на реальный контент)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    tempDiv.querySelectorAll('.component-placeholder').forEach(el => {
-        el.outerHTML = el.innerHTML;
-    });
-    const cleanContent = tempDiv.innerHTML;
+    // Удаляем все лишние обертки и плейсхолдеры
+    // Теперь контент уже чистый, так как мы вставляем без плейсхолдеров
+    const cleanContent = content;
 
     // ===== СОЗДАЁМ СТРАНИЦУ =====
     let htmlString = '<!DOCTYPE html>\n';
@@ -320,7 +298,7 @@ function exportHTML() {
         htmlString += '                <img src="/blog/img/' + mainImage + '" alt="' + escapeHtml(title) + '" class="main-image">\n';
     }
     
-    // Контент
+    // Контент (чистый HTML без плейсхолдеров)
     htmlString += '                ' + cleanContent + '\n';
     
     // Кнопки шаринга
